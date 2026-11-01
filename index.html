@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VTS Mailer">
+<meta name="theme-color" content="#154C82">
+<title>VTS — Invoice &amp; DO Mailer</title>
+<style>
+  :root{
+    --bg:#F4F7FB; --surface:#FFFFFF; --primary:#154C82; --primary-dark:#0E3A66; --accent:#2BA8C4;
+    --text:#1C2733; --text-muted:#62748A; --border:#DDE5ED; --border-soft:#EAF0F6;
+    --success:#1F9D55; --success-bg:#E8F7EE; --danger:#C24545; --danger-bg:#FBEAEA;
+    --warn:#9A6200; --warn-bg:#FFF5DF; --warn-border:#F0D590;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,"Segoe UI",ui-sans-serif,Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;}
+  .hidden{display:none !important;}
+  .app{max-width:1100px;margin:0 auto;padding:22px 20px 80px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));}
+
+  /* Header */
+  .topbar{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+  .mark{width:38px;height:38px;flex:0 0 auto;}
+  .titles{flex:1;min-width:180px;}
+  .titles h1{font-size:18px;margin:0 0 1px;font-weight:700;letter-spacing:-0.01em;color:var(--primary-dark);}
+  .titles p{margin:0;color:var(--text-muted);font-size:12px;}
+  .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .icon-btn{background:var(--surface);border:1px solid var(--border);color:var(--primary);border-radius:8px;padding:7px 11px;font-size:13px;font-weight:600;min-height:36px;}
+  .icon-btn:disabled{opacity:.4;cursor:default;}
+  .icon-btn:not(:disabled):hover{background:var(--border-soft);}
+  .pill{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--text-muted);min-height:36px;}
+  .pill.ok{color:var(--success);border-color:#BFE6CE;background:var(--success-bg);}
+  .pill.err{color:var(--danger);border-color:#EBC0C0;background:var(--danger-bg);}
+  .pill.busy{color:var(--primary);}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab-btn{background:none;border:none;border-bottom:3px solid transparent;padding:10px 14px;font-size:13.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;cursor:pointer;font-family:inherit;}
+  .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+  .tab-btn .count{display:inline-block;margin-left:5px;background:var(--border-soft);color:var(--text-muted);border-radius:999px;padding:0 7px;font-size:11px;}
+
+  .banner{border:1px solid var(--warn-border);background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px;}
+  .banner button{font-family:inherit;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:820px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .panel h2{font-size:14px;margin:0 0 14px;color:var(--primary-dark);font-weight:700;}
+  .panel h2 .sub{font-weight:400;color:var(--text-muted);font-size:12px;margin-left:6px;}
+
+  .field{margin-top:14px;}
+  .field:first-of-type{margin-top:0;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:480px){.row2{grid-template-columns:1fr;}}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin:0 0 6px;}
+  label .hint{display:block;font-weight:400;color:var(--text-muted);font-size:11.5px;margin-top:2px;}
+  input[type=text], input[type=email], input[type=password], input[type=search], textarea, select{
+    width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;
+    font-family:inherit;font-size:13.5px;color:var(--text);background:#FBFCFE;
+    transition:border-color .15s, box-shadow .15s;min-height:38px;
+  }
+  select{appearance:auto;}
+  @media (max-width:820px){input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{font-size:16px;}}
+  input::placeholder, textarea::placeholder{color:#9AABBE;}
+  input:focus, textarea:focus, select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,76,130,0.12);background:#fff;}
+  textarea{resize:vertical;min-height:96px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  @media (max-width:820px){textarea{font-size:15px;}}
+  .invalid{border-color:var(--danger) !important;background:var(--danger-bg) !important;}
+  .hint-line{font-size:11.5px;margin-top:4px;color:var(--warn);}
+  .hint-line.good{color:var(--success);}
+  .hint-line:empty{display:none;}
+
+  .inline-new{margin-top:10px;padding:12px;border:1px dashed var(--border);border-radius:10px;background:#F8FAFD;}
+  .inline-new .field{margin-top:10px;}
+  .inline-new .field:first-child{margin-top:0;}
+
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  .btn-primary{background:var(--primary);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;transition:background .15s;min-height:40px;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-primary.wide{width:100%;margin-top:6px;text-align:center;}
+  .btn-primary.warnmode{background:var(--warn);}
+  .btn-ghost{background:transparent;color:var(--text-muted);padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:600;border:1px solid var(--border);min-height:40px;}
+  .btn-ghost:hover{background:var(--border-soft);}
+  .btn-danger{background:transparent;color:var(--danger);padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:600;border:1px solid #EBC0C0;min-height:36px;}
+  .btn-danger:hover{background:var(--danger-bg);}
+  .btn-sm{background:var(--surface);border:1px solid var(--border);color:var(--primary);padding:7px 11px;border-radius:8px;font-size:12.5px;font-weight:600;min-height:36px;}
+  .btn-sm:hover{background:var(--border-soft);}
+
+  .gen-warn{margin-top:14px;padding:11px 13px;border:1px solid var(--warn-border);background:var(--warn-bg);color:var(--warn);border-radius:10px;font-size:12.5px;}
+  .gen-warn ul{margin:6px 0 0;padding-left:18px;}
+  .edit-banner{margin-bottom:14px;padding:9px 12px;background:#EAF3FB;border:1px solid #C9DFF2;color:var(--primary-dark);border-radius:10px;font-size:12.5px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+
+  /* Output */
+  .empty{color:var(--text-muted);font-size:13px;padding:26px 10px;text-align:center;line-height:1.6;}
+  .result-block{margin-bottom:16px;border:1px solid var(--border-soft);border-radius:10px;overflow:hidden;}
+  .result-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#F8FAFD;border-bottom:1px solid var(--border-soft);gap:8px;}
+  .result-head h3{font-size:11.5px;margin:0;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em;}
+  .copy-btn{background:var(--surface);border:1px solid var(--border);color:var(--primary);font-size:12px;font-weight:600;padding:5px 11px;border-radius:6px;min-height:30px;}
+  .copy-btn:hover{background:var(--border-soft);}
+  .copy-btn.copied{background:var(--success-bg);border-color:var(--success);color:var(--success);}
+  pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--text);}
+  .field-out{padding:12px;font-size:13px;color:var(--text);word-break:break-word;}
+  .checklist{margin:0;padding:12px 12px 12px 30px;font-size:13px;}
+  .checklist li{margin-bottom:5px;}
+  .checklist .bad{color:var(--danger);}
+  .out-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .out-actions .btn-primary,.out-actions .btn-ghost{margin:0;width:100%;}
+
+  /* Toolbar & cards */
+  .toolbar{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+  @media (max-width:820px){.toolbar{grid-template-columns:1fr 1fr;}.toolbar input{grid-column:1 / -1;}}
+  .list-meta{display:flex;justify-content:space-between;align-items:center;color:var(--text-muted);font-size:12px;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+  .card-title{font-weight:700;font-size:14px;color:var(--text);word-break:break-word;}
+  .card-sub{color:var(--text-muted);font-size:12.5px;margin-top:2px;word-break:break-word;}
+  .card-serial{margin-top:6px;font-size:12px;color:var(--primary-dark);font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;}
+  .chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
+  .chip.Draft{background:#EEF1F5;color:#5A6B80;}
+  .chip.Sent{background:#E4F0FB;color:var(--primary);}
+  .chip.Paid{background:var(--success-bg);color:var(--success);}
+  .card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  .card-actions select{width:auto;min-height:36px;padding:6px 8px;font-size:13px;}
+  .card-actions .spacer{flex:1;}
+  .muted{color:var(--text-muted);}
+  .co-list .card-sub{white-space:pre-wrap;}
+
+  .help{font-size:12.5px;color:var(--text-muted);margin:6px 0 0;}
+  .help ol{margin:6px 0 0;padding-left:20px;}
+  .kv{font-size:13px;margin:6px 0;}
+  hr.sep{border:none;border-top:1px solid var(--border-soft);margin:18px 0;}
+
+  #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;
+    background:#1C2733;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;display:flex;gap:14px;align-items:center;max-width:92vw;transition:all .2s;z-index:50;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  #toast button{background:none;color:#7CC4FF;font-weight:700;font-size:13px;padding:2px 4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <svg class="mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="2,30 20,8 22,11 6,30" fill="#154C82"/>
+      <polygon points="14,30 32,8 38,8 20,30" fill="#2BA8C4"/>
+    </svg>
+    <div class="titles">
+      <h1>Invoice &amp; DO Mailer</h1>
+      <p>Vertesys Technologies — record, ZOHO serial block, dispatch email</p>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="undoBtn" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
+      <button class="icon-btn" id="redoBtn" title="Redo (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
+      <button class="pill" id="syncPill">Local only</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="new">New record</button>
+    <button class="tab-btn" data-tab="records">Records<span class="count" id="cntRecords">0</span></button>
+    <button class="tab-btn" data-tab="bin">Bin<span class="count" id="cntBin">0</span></button>
+    <button class="tab-btn" data-tab="companies">Companies<span class="count" id="cntCompanies">0</span></button>
+    <button class="tab-btn" data-tab="backup">Backup &amp; Sync</button>
+  </nav>
+
+  <div class="banner hidden" id="backupBanner">
+    <span id="backupBannerText"></span>
+    <span><button class="btn-sm" id="bannerBackupBtn">Back up now</button> <button class="btn-sm" id="bannerDismissBtn">Dismiss</button></span>
+  </div>
+
+  <!-- ============ NEW RECORD ============ -->
+  <section id="tab-new">
+    <div class="grid">
+      <div class="panel">
+        <h2>Reference details</h2>
+        <div class="edit-banner hidden" id="editBanner"><span id="editBannerText"></span><button class="btn-sm" id="newFromEditBtn">Start new record</button></div>
+
+        <div class="field">
+          <label for="soNumber">SO Number</label>
+          <input type="text" id="soNumber" placeholder="e.g. VTSSO-2026-065" autocomplete="off">
+          <div class="hint-line" id="hintSo"></div>
+        </div>
+
+        <div class="field">
+          <label for="companySel">Company</label>
+          <select id="companySel"></select>
+          <div class="inline-new hidden" id="inlineNew">
+            <div class="field"><label for="ncName">New company name</label><input type="text" id="ncName" placeholder="e.g. Itech System" autocomplete="off"></div>
+            <div class="field"><label for="ncEmail">Default recipient email(s)</label><input type="text" id="ncEmail" placeholder="e.g. accounts@itech.com.my" autocomplete="off" inputmode="email"></div>
+            <div class="actions" style="margin-top:12px"><button class="btn-primary" id="ncSave">Save company</button><button class="btn-ghost" id="ncCancel">Cancel</button></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="poNumber">PO Number</label>
+          <input type="text" id="poNumber" placeholder="e.g. PO-2606-031" autocomplete="off">
+          <div class="hint-line" id="hintPo"></div>
+        </div>
+
+        <div class="field">
+          <label for="productService">Product / Service</label>
+          <input type="text" id="productService" placeholder="e.g. Panda AV" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="invoiceNumber">Invoice Number</label>
+          <input type="text" id="invoiceNumber" placeholder="e.g. INV-VTS26-071" autocomplete="off">
+          <div class="hint-line" id="hintInv"></div>
+        </div>
+
+        <div class="field">
+          <label for="recipientEmail">Recipient Email<span class="hint">auto-fills from the company; comma-separate for more than one</span></label>
+          <input type="text" id="recipientEmail" placeholder="e.g. accounts@itech.com.my" autocomplete="off" inputmode="email" autocapitalize="off">
+        </div>
+
+        <div class="field">
+          <label for="qty">Quantity on invoice (optional)<span class="hint">used to check the serial count</span></label>
+          <input type="text" id="qty" placeholder="e.g. 6" inputmode="numeric" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="serials">Serial Numbers<span class="hint">one per line — becomes the "Other Note" paste block for the ZOHO line item</span></label>
+          <textarea id="serials" rows="6" placeholder="GYVVCH4&#10;FYVVCH4&#10;1ZVVCH4" autocapitalize="characters" autocomplete="off" spellcheck="false"></textarea>
+          <div class="hint-line" id="hintSerials"></div>
+        </div>
+
+        <div class="field">
+          <label for="refNote">Attachment found on SO (optional)<span class="hint">what you checked for reference — a record for yourself, not in the email</span></label>
+          <input type="text" id="refNote" placeholder="e.g. customer PO copy attached on SO email" autocomplete="off">
+        </div>
+
+        <div class="gen-warn hidden" id="genWarn"></div>
+
+        <div class="actions">
+          <button class="btn-primary" id="generateBtn">Generate &amp; save</button>
+          <button class="btn-ghost" id="resetBtn">New / clear</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Output</h2>
+        <div class="empty" id="emptyState">Fill in the details and press Generate. The record is saved automatically, and the ZOHO serial block and dispatch email appear here, ready to copy.</div>
+        <div class="hidden" id="results">
+          <div class="result-block">
+            <div class="result-head"><h3>Checklist</h3></div>
+            <ul class="checklist" id="checklistOut"></ul>
+          </div>
+          <div class="result-block">
+            <div class="result-head"><h3>Serials — paste into Other Note</h3><button class="copy-btn" data-target="serialOut">Copy</button></div>
+            <pre id="serialOut"></pre>
+          </div>
+          <div class="result-block">
+            <div class="result-head"><h3>Email — To</h3><button class="copy-btn" data-target="toOut">Copy</button></div>
+            <div class="field-out" id="toOut"></div>
+          </div>
+          <div class="result-block">
+            <div class="result-head"><h3>Email — Subject</h3><button class="copy-btn" data-target="subjectOut">Copy</button></div>
+            <div class="field-out" id="subjectOut"></div>
+          </div>
+          <div class="result-block">
+            <div class="result-head"><h3>Email — Body</h3><button class="copy-btn" data-target="bodyOut">Copy</button></div>
+            <pre id="bodyOut"></pre>
+          </div>
+          <div class="out-actions">
+            <button class="btn-primary" id="mailtoBtn">Open in Mail</button>
+            <button class="btn-ghost" id="markSentBtn">Mark as Sent</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RECORDS ============ -->
+  <section id="tab-records" class="hidden">
+    <div class="toolbar">
+      <input type="search" id="recSearch" placeholder="Search SO, PO, invoice, company, serial…" autocomplete="off">
+      <select id="recStatus"><option value="">All statuses</option><option>Draft</option><option>Sent</option><option>Paid</option></select>
+      <select id="recCompany"></select>
+      <select id="recSort">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="company">Company A–Z</option>
+        <option value="po">PO number</option>
+      </select>
+    </div>
+    <div class="list-meta"><span id="recMeta"></span><button class="btn-sm" id="csvBtn">Export CSV</button></div>
+    <div id="recList"></div>
+  </section>
+
+  <!-- ============ BIN ============ -->
+  <section id="tab-bin" class="hidden">
+    <div class="list-meta"><span id="binMeta">Deleted records stay here until you empty the Bin.</span><button class="btn-danger" id="emptyBinBtn">Empty Bin</button></div>
+    <div id="binList"></div>
+  </section>
+
+  <!-- ============ COMPANIES ============ -->
+  <section id="tab-companies" class="hidden">
+    <div class="grid">
+      <div class="panel">
+        <h2 id="coFormTitle">Add company</h2>
+        <div class="field"><label for="coName">Company name</label><input type="text" id="coName" placeholder="e.g. Itech System" autocomplete="off"></div>
+        <div class="field"><label for="coEmails">Default recipient email(s)<span class="hint">comma-separate for more than one</span></label><input type="text" id="coEmails" placeholder="e.g. accounts@itech.com.my" autocomplete="off" inputmode="email"></div>
+        <div class="actions"><button class="btn-primary" id="coSave">Save company</button><button class="btn-ghost" id="coCancel">Clear</button></div>
+      </div>
+      <div>
+        <div id="coList" class="co-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BACKUP & SYNC ============ -->
+  <section id="tab-backup" class="hidden">
+    <div class="grid">
+      <div class="panel">
+        <h2>Sync across devices <span class="sub">(optional)</span></h2>
+        <div id="syncOff">
+          <p class="help" style="margin-top:0">Records are always saved in this browser. To see the same records on your iPhone and computer, connect each device once:</p>
+          <ol class="help">
+            <li>On github.com open Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token.</li>
+            <li>Tick <b>only</b> the <b>gist</b> permission, then copy the token.</li>
+            <li>Paste it below on each device. The first device creates a private-link gist; the others find it automatically.</li>
+          </ol>
+          <div class="field"><label for="tokenInput">GitHub token (gist scope)</label><input type="password" id="tokenInput" placeholder="ghp_…" autocomplete="off"></div>
+          <div class="actions"><button class="btn-primary" id="connectBtn">Connect</button></div>
+        </div>
+        <div id="syncOn" class="hidden">
+          <div class="kv" id="syncStatusText"></div>
+          <div class="kv muted" id="syncGistText"></div>
+          <div class="actions"><button class="btn-primary" id="syncNowBtn">Sync now</button><button class="btn-danger" id="disconnectBtn">Disconnect this device</button></div>
+        </div>
+        <hr class="sep">
+        <p class="help" style="margin-top:0">The token is stored only in this browser — never put it in the code or the GitHub repo. Your data sits in a secret gist: unlisted, but not encrypted, so anyone given its link could read it. Records contain customer emails and serial numbers.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Backup</h2>
+        <div class="kv" id="lastBackupText"></div>
+        <div class="actions">
+          <button class="btn-primary" id="exportJsonBtn">Download backup (JSON)</button>
+          <button class="btn-ghost" id="importBtn">Import backup…</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+        <p class="help">Import merges with what you already have — nothing is overwritten unless the imported copy is newer.</p>
+        <hr class="sep">
+        <div class="actions" style="margin-top:0"><button class="btn-ghost" id="csvBtn2">Export records as CSV</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   Storage / state
+   ============================================================ */
+const LS_DATA = 'vts_mailer_data_v1';
+const LS_SYNC = 'vts_mailer_sync_v1';
+const LS_BACKUP = 'vts_mailer_last_backup';
+const GIST_FILE = 'vts-mailer-data.json';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s == null ? '' : s).trim().toLowerCase();
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const now = () => Date.now();
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function blankState(){ return { records: [], companies: [], purged: {} }; }
+function loadState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_DATA));
+    if (s && Array.isArray(s.records)) return Object.assign(blankState(), s, { companies: s.companies || [], purged: s.purged || {} });
+  }catch(e){}
+  return blankState();
+}
+let state = loadState();
+
+function saveLocal(){
+  try{ localStorage.setItem(LS_DATA, JSON.stringify(state)); return true; }
+  catch(e){ toast('Could not save in this browser (storage blocked or full). Download a backup.'); return false; }
+}
+function persist(){ saveLocal(); scheduleSync(); }
+
+/* ============================================================
+   Undo / redo (whole-state snapshots, this session only)
+   ============================================================ */
+const undoStack = [], redoStack = [];
+
+function commit(label, fn){
+  undoStack.push({ label, snap: clone(state) });
+  if (undoStack.length > 100) undoStack.shift();
+  redoStack.length = 0;
+  fn();
+  persist();
+  renderAll();
+}
+
+// Make a snapshot the live state while keeping sync consistent:
+// changed items get a fresh timestamp, vanished items get a tombstone.
+function restoreSnapshot(snap){
+  const t = now();
+  const next = clone(snap);
+  ['records', 'companies'].forEach(k => {
+    const curMap = new Map(state[k].map(x => [x.id, x]));
+    const nextIds = new Set(next[k].map(x => x.id));
+    next[k].forEach(x => {
+      const c = curMap.get(x.id);
+      if (!c || JSON.stringify(c) !== JSON.stringify(x)) x.updatedAt = t;
+      delete next.purged[x.id];
+    });
+    state[k].forEach(x => { if (!nextIds.has(x.id)) next.purged[x.id] = t; });
+  });
+  state = next;
+}
+function undo(){
+  if (!undoStack.length) return;
+  const e = undoStack.pop();
+  redoStack.push({ label: e.label, snap: clone(state) });
+  restoreSnapshot(e.snap);
+  persist(); renderAll(); refreshFormAfterStateChange();
+  toast('Undid: ' + e.label);
+}
+function redo(){
+  if (!redoStack.length) return;
+  const e = redoStack.pop();
+  undoStack.push({ label: e.label, snap: clone(state) });
+  restoreSnapshot(e.snap);
+  persist(); renderAll(); refreshFormAfterStateChange();
+  toast('Redid: ' + e.label);
+}
+function refreshFormAfterStateChange(){
+  if (editingId && !state.records.some(r => r.id === editingId && !r.deletedAt)){ editingId = null; updateEditBanner(); }
+  updateHints();
+}
+
+/* ============================================================
+   Merge (used by sync and import)
+   ============================================================ */
+function mergeLists(a, b, purged){
+  const m = new Map();
+  [...a, ...b].forEach(x => {
+    const e = m.get(x.id);
+    if (!e || (x.updatedAt || 0) > (e.updatedAt || 0)) m.set(x.id, x);
+  });
+  return [...m.values()].filter(x => !((purged[x.id] || 0) >= (x.updatedAt || 0)));
+}
+function mergeStates(a, b){
+  const purged = Object.assign({}, a.purged || {});
+  Object.entries(b.purged || {}).forEach(([k, v]) => { purged[k] = Math.max(purged[k] || 0, v); });
+  return {
+    records: mergeLists(a.records || [], b.records || [], purged),
+    companies: mergeLists(a.companies || [], b.companies || [], purged),
+    purged
+  };
+}
+function sig(s){
+  return [
+    (s.records || []).map(r => r.id + ':' + r.updatedAt).sort().join(','),
+    (s.companies || []).map(c => c.id + ':' + c.updatedAt).sort().join(','),
+    Object.entries(s.purged || {}).map(([k, v]) => k + ':' + v).sort().join(',')
+  ].join('|');
+}
+
+/* ============================================================
+   GitHub Gist sync
+   ============================================================ */
+let sync = (() => { try{ return JSON.parse(localStorage.getItem(LS_SYNC)) || { token: '', gistId: '' }; }catch(e){ return { token: '', gistId: '' }; } })();
+let syncTimer = null, syncBusy = false, lastSyncAt = null, syncError = '';
+
+function saveSyncCfg(){ try{ localStorage.setItem(LS_SYNC, JSON.stringify(sync)); }catch(e){} }
+
+async function gh(path, opts){
+  opts = opts || {};
+  const headers = { 'Authorization': 'Bearer ' + sync.token, 'Accept': 'application/vnd.github+json' };
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  const r = await fetch('https://api.github.com' + path, Object.assign({ cache: 'no-store' }, opts, { headers }));
+  if (!r.ok){
+    let t = ''; try{ t = (await r.text()).slice(0, 140); }catch(e){}
+    const err = new Error(r.status + ' ' + t); err.status = r.status; throw err;
+  }
+  return r.json();
+}
+async function findGist(){
+  for (let page = 1; page <= 5; page++){
+    const list = await gh('/gists?per_page=100&page=' + page);
+    const hit = list.find(g => g.files && g.files[GIST_FILE]);
+    if (hit) return hit.id;
+    if (list.length < 100) break;
+  }
+  return '';
+}
+function scheduleSync(){
+  if (!sync.token) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 1200);
+}
+async function syncNow(){
+  if (!sync.token) return;
+  if (syncBusy){ scheduleSync(); return; }
+  syncBusy = true; syncError = ''; renderSyncUI();
+  try{
+    if (!sync.gistId){
+      const id = await findGist();
+      if (id){ sync.gistId = id; saveSyncCfg(); }
+    }
+    let needPush = true;
+    if (sync.gistId){
+      const g = await gh('/gists/' + sync.gistId);
+      const f = g.files && g.files[GIST_FILE];
+      let remote = null;
+      if (f){
+        let content = f.content;
+        if (f.truncated) content = await (await fetch(f.raw_url, { cache: 'no-store' })).text();
+        try{ remote = JSON.parse(content); }catch(e){}
+      }
+      if (remote && Array.isArray(remote.records)){
+        const merged = mergeStates(state, remote);
+        const localChanged = sig(merged) !== sig(state);
+        needPush = sig(merged) !== sig(remote);
+        state = merged;
+        if (localChanged){ saveLocal(); renderAll(); refreshFormAfterStateChange(); }
+      }
+    }
+    if (needPush){
+      const body = JSON.stringify({ description: 'VTS Invoice & DO Mailer data (do not delete)', public: false,
+        files: { [GIST_FILE]: { content: JSON.stringify(state) } } });
+      if (sync.gistId){
+        await gh('/gists/' + sync.gistId, { method: 'PATCH', body });
+      } else {
+        const created = await gh('/gists', { method: 'POST', body });
+        sync.gistId = created.id; saveSyncCfg();
+      }
+    }
+    lastSyncAt = now();
+  }catch(e){
+    syncError = e.status === 401 ? 'Token rejected (401) — reconnect with a valid token.' : (e.message || 'Network error');
+  }finally{
+    syncBusy = false; renderSyncUI();
+  }
+}
+function renderSyncUI(){
+  const pill = $('syncPill');
+  pill.className = 'pill';
+  if (!sync.token){ pill.textContent = 'Local only'; }
+  else if (syncBusy){ pill.textContent = 'Syncing…'; pill.classList.add('busy'); }
+  else if (syncError){ pill.textContent = '⚠ Sync error'; pill.classList.add('err'); }
+  else if (lastSyncAt){ pill.textContent = '● Synced ' + new Date(lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); pill.classList.add('ok'); }
+  else { pill.textContent = 'Sync connected'; }
+
+  $('syncOff').classList.toggle('hidden', !!sync.token);
+  $('syncOn').classList.toggle('hidden', !sync.token);
+  if (sync.token){
+    $('syncStatusText').innerHTML = syncBusy ? 'Syncing…' : syncError ? '<span style="color:var(--danger)">⚠ ' + esc(syncError) + '</span>'
+      : lastSyncAt ? 'Last synced ' + esc(new Date(lastSyncAt).toLocaleString()) : 'Connected — not synced yet in this session.';
+    $('syncGistText').textContent = sync.gistId ? 'Gist: ' + sync.gistId : 'Gist: will be created on first sync';
+  }
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+let toastTimer;
+function toast(msg, actLabel, actFn){
+  const t = $('toast');
+  t.innerHTML = '';
+  const s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
+  if (actLabel){
+    const b = document.createElement('button'); b.textContent = actLabel;
+    b.onclick = () => { actFn(); t.classList.remove('show'); };
+    t.appendChild(b);
+  }
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 5500);
+}
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+const fmtDate = ts => ts ? new Date(ts).toLocaleString('en-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+function parseSerials(raw){ return String(raw || '').split(/[\n,;]+/).map(s => s.trim()).filter(Boolean); }
+function parseEmails(raw){ return String(raw || '').split(/[;,]+/).map(s => s.trim()).filter(Boolean); }
+const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const recLabel = r => `${r.company} · ${r.po} · ${r.inv}${r.deletedAt ? ' (in Bin)' : ''} [${r.status}]`;
+const activeRecords = () => state.records.filter(r => !r.deletedAt);
+const binRecords = () => state.records.filter(r => r.deletedAt);
+
+function download(filename, text, mime){
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ============================================================
+   Form
+   ============================================================ */
+const F = {
+  so: $('soNumber'), company: $('companySel'), po: $('poNumber'), product: $('productService'),
+  qty: $('qty'), inv: $('invoiceNumber'), email: $('recipientEmail'), serials: $('serials'), refNote: $('refNote')
+};
+let editingId = null;
+let legacyCompany = null;      // when a loaded record's company no longer exists in the list
+let lastAutoEmail = '';
+let dupConfirmed = false;
+let currentOutId = null;
+let lastMailto = '#';
+
+function renderCompanySelect(){
+  const cur = F.company.value;
+  const list = [...state.companies].sort((a, b) => a.name.localeCompare(b.name));
+  let h = '<option value="">— Select company —</option>';
+  list.forEach(c => { h += `<option value="${esc(c.id)}">${esc(c.name)}</option>`; });
+  if (legacyCompany && !list.some(c => c.id === legacyCompany.id)) h += `<option value="__legacy">${esc(legacyCompany.name)} (not in list)</option>`;
+  h += '<option value="__new">＋ Add new company…</option>';
+  F.company.innerHTML = h;
+  F.company.value = [...F.company.options].some(o => o.value === cur) ? cur : '';
+}
+function selectedCompany(){
+  const v = F.company.value;
+  if (v === '__legacy' && legacyCompany) return { id: legacyCompany.id || '', name: legacyCompany.name };
+  const c = state.companies.find(c => c.id === v);
+  return c ? { id: c.id, name: c.name } : null;
+}
+
+F.company.addEventListener('change', () => {
+  const v = F.company.value;
+  $('inlineNew').classList.toggle('hidden', v !== '__new');
+  if (v === '__new'){ $('ncName').focus(); return; }
+  const c = state.companies.find(c => c.id === v);
+  if (c && c.emails && (!F.email.value.trim() || F.email.value === lastAutoEmail)){
+    F.email.value = c.emails; lastAutoEmail = c.emails;
+  }
+  onFormInput();
+});
+$('ncCancel').addEventListener('click', () => { $('inlineNew').classList.add('hidden'); F.company.value = ''; });
+$('ncSave').addEventListener('click', () => {
+  const id = addCompany($('ncName').value, $('ncEmail').value);
+  if (!id) return;
+  $('ncName').value = ''; $('ncEmail').value = '';
+  $('inlineNew').classList.add('hidden');
+  renderCompanySelect();
+  F.company.value = id;
+  const c = state.companies.find(c => c.id === id);
+  if (c.emails && (!F.email.value.trim() || F.email.value === lastAutoEmail)){ F.email.value = c.emails; lastAutoEmail = c.emails; }
+  onFormInput();
+});
+
+function readForm(){
+  const co = selectedCompany();
+  return {
+    so: F.so.value.trim(),
+    companyId: co ? co.id : '',
+    company: co ? co.name : '',
+    po: F.po.value.trim(),
+    product: F.product.value.trim(),
+    qty: F.qty.value.trim(),
+    inv: F.inv.value.trim(),
+    email: F.email.value.trim(),
+    serials: parseSerials(F.serials.value),
+    refNote: F.refNote.value.trim()
+  };
+}
+function setForm(r){
+  F.so.value = r.so || '';
+  const exists = state.companies.some(c => c.id === r.companyId);
+  legacyCompany = exists ? null : (r.company ? { id: r.companyId || '', name: r.company } : null);
+  renderCompanySelect();
+  F.company.value = exists ? r.companyId : (legacyCompany ? '__legacy' : '');
+  $('inlineNew').classList.add('hidden');
+  F.po.value = r.po || '';
+  F.product.value = r.product || '';
+  F.qty.value = r.qty || '';
+  F.inv.value = r.inv || '';
+  F.email.value = r.email || '';
+  lastAutoEmail = '';
+  F.serials.value = (r.serials || []).join('\n');
+  F.refNote.value = r.refNote || '';
+}
+function clearForm(){
+  setForm({}); legacyCompany = null; renderCompanySelect();
+  editingId = null; currentOutId = null;
+  Object.values(F).forEach(el => el.classList.remove('invalid'));
+  $('results').classList.add('hidden'); $('emptyState').classList.remove('hidden');
+  resetConfirm(); updateEditBanner(); updateHints();
+}
+function updateEditBanner(){
+  const b = $('editBanner');
+  const r = editingId && state.records.find(r => r.id === editingId);
+  if (r){
+    b.classList.remove('hidden');
+    $('editBannerText').textContent = `Editing saved record ${r.inv || r.po}. Generate updates it.`;
+    $('generateBtn').textContent = 'Update & generate';
+  } else {
+    b.classList.add('hidden');
+    $('generateBtn').textContent = 'Generate & save';
+  }
+}
+$('newFromEditBtn').addEventListener('click', clearForm);
+$('resetBtn').addEventListener('click', clearForm);
+
+/* ---- checks ---- */
+function findIdDupes(f, exId){
+  const out = [];
+  state.records.forEach(r => {
+    if (r.id === exId) return;
+    const hits = [];
+    if (f.so && norm(r.so) === norm(f.so)) hits.push('SO');
+    if (f.po && norm(r.po) === norm(f.po)) hits.push('PO');
+    if (f.inv && norm(r.inv) === norm(f.inv)) hits.push('Invoice no.');
+    if (hits.length) out.push({ rec: r, hits });
+  });
+  return out;
+}
+function serialClashes(serials, exId){
+  const set = new Set(serials.map(norm));
+  const map = {};
+  state.records.forEach(r => {
+    if (r.id === exId) return;
+    (r.serials || []).forEach(s => { if (set.has(norm(s))) (map[s] = map[s] || []).push(r); });
+  });
+  return map;
+}
+function internalSerialDupes(serials){
+  const seen = {}, d = [];
+  serials.forEach(s => { const k = norm(s); if (seen[k] && !d.includes(s)) d.push(s); seen[k] = true; });
+  return d;
+}
+function collectWarnings(f){
+  const w = [];
+  findIdDupes(f, editingId).forEach(d => w.push(`${d.hits.join(' + ')} already used in: ${recLabel(d.rec)}`));
+  const dup = internalSerialDupes(f.serials);
+  if (dup.length) w.push('Duplicate serial(s) within this record: ' + dup.join(', '));
+  const clash = serialClashes(f.serials, editingId);
+  Object.keys(clash).forEach(s => w.push(`Serial ${s} already on: ${clash[s].map(recLabel).join('; ')}`));
+  const q = parseInt(f.qty, 10);
+  if (f.qty && !isNaN(q) && f.serials.length && f.serials.length !== q) w.push(`${f.serials.length} serial(s) entered but quantity is ${q}`);
+  if (f.qty && !isNaN(q) && !f.serials.length) w.push(`Quantity is ${q} but no serials entered`);
+  return w;
+}
+function setHint(id, text, good){
+  const el = $(id); el.textContent = text || ''; el.classList.toggle('good', !!good);
+}
+function updateHints(){
+  const f = readForm();
+  const d = findIdDupes(f, editingId);
+  const pick = key => d.filter(x => x.hits.includes(key)).map(x => recLabel(x.rec));
+  const so = pick('SO'), po = pick('PO'), inv = pick('Invoice no.');
+  setHint('hintSo', so.length ? '⚠ SO already used: ' + so.join('; ') : '');
+  setHint('hintPo', po.length ? '⚠ PO already used: ' + po.join('; ') : '');
+  setHint('hintInv', inv.length ? '⚠ Invoice no. already used: ' + inv.join('; ') : '');
+  const msgs = [];
+  const dup = internalSerialDupes(f.serials);
+  if (dup.length) msgs.push('⚠ Duplicate in list: ' + dup.join(', '));
+  const clash = serialClashes(f.serials, editingId);
+  const cs = Object.keys(clash);
+  if (cs.length) msgs.push('⚠ Already on another record: ' + cs.slice(0, 4).join(', ') + (cs.length > 4 ? '…' : ''));
+  const q = parseInt(f.qty, 10);
+  if (f.serials.length){
+    if (f.qty && !isNaN(q)){
+      if (f.serials.length === q && !msgs.length){ setHint('hintSerials', `✓ ${f.serials.length} serials — matches quantity`, true); return; }
+      if (f.serials.length !== q) msgs.push(`⚠ ${f.serials.length} serials vs quantity ${q}`);
+    } else if (!msgs.length){ setHint('hintSerials', `${f.serials.length} serial(s)`, true); return; }
+  }
+  setHint('hintSerials', msgs.join(' · '));
+}
+function resetConfirm(){
+  dupConfirmed = false;
+  $('genWarn').classList.add('hidden');
+  $('generateBtn').classList.remove('warnmode');
+  updateEditBanner();
+}
+function onFormInput(){ resetConfirm(); updateHints(); }
+Object.values(F).forEach(el => { el.addEventListener('input', onFormInput); });
+
+/* ---- generate ---- */
+function validate(f){
+  let bad = false;
+  const mark = (el, cond) => { el.classList.toggle('invalid', cond); if (cond) bad = true; };
+  mark(F.so, !f.so); mark(F.company, !f.company); mark(F.po, !f.po); mark(F.product, !f.product); mark(F.inv, !f.inv);
+  const emails = parseEmails(f.email);
+  mark(F.email, !emails.length || !emails.every(emailOk));
+  if (f.qty) mark(F.qty, !/^\d+$/.test(f.qty));
+  if (bad) toast('Please complete the highlighted fields (check the email format too).');
+  return !bad;
+}
+function buildMail(f){
+  const to = parseEmails(f.email).join(', ');
+  const subject = `INV & DO | ${f.company} | ${f.po} | ${f.product}`;
+  const body = `Hi, attached Invoice & DO of ${f.po}\n\nThanks`;
+  return { to, subject, body };
+}
+
+$('generateBtn').addEventListener('click', () => {
+  const f = readForm();
+  if (!validate(f)) return;
+  const warnings = collectWarnings(f);
+  if (warnings.length && !dupConfirmed){
+    dupConfirmed = true;
+    const gw = $('genWarn');
+    gw.innerHTML = '<b>Check before continuing:</b><ul>' + warnings.map(w => `<li>${esc(w)}</li>`).join('') + '</ul><div style="margin-top:6px">Press the button again to continue anyway.</div>';
+    gw.classList.remove('hidden');
+    $('generateBtn').textContent = 'Generate anyway';
+    $('generateBtn').classList.add('warnmode');
+    return;
+  }
+  const fields = { so: f.so, companyId: f.companyId, company: f.company, po: f.po, product: f.product, qty: f.qty, inv: f.inv, email: f.email, serials: f.serials, refNote: f.refNote };
+  const existing = editingId && state.records.find(r => r.id === editingId && !r.deletedAt);
+  if (existing){
+    commit('Update record', () => { Object.assign(existing, fields, { updatedAt: now() }); });
+    currentOutId = existing.id;
+  } else {
+    const id = uid();
+    commit('Add record', () => {
+      state.records.push(Object.assign({ id, status: 'Draft', sentAt: null, createdAt: now(), updatedAt: now(), deletedAt: null }, fields));
+    });
+    editingId = id; currentOutId = id;
+  }
+  resetConfirm();
+  renderOutput(f, warnings);
+  toast('Record saved');
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+function renderOutput(f, warnings){
+  warnings = warnings || collectWarnings(f);
+  const rec = currentOutId && state.records.find(r => r.id === currentOutId);
+  const items = [];
+  items.push(`SO ${esc(f.so)} → Invoice ${esc(f.inv)} (PO ${esc(f.po)})`);
+  items.push(`${esc(f.company)} | ${esc(f.product)}`);
+  items.push(f.refNote ? `Reference checked: ${esc(f.refNote)}` : '<span class="bad">No reference/attachment note recorded — confirm nothing was needed for this SO</span>');
+  items.push(f.serials.length ? `${f.serials.length} serial number(s) ready to paste` : '<span class="bad">No serial numbers entered — confirm this item doesn\'t need them</span>');
+  warnings.forEach(w => items.push('<span class="bad">⚠ ' + esc(w) + '</span>'));
+  $('checklistOut').innerHTML = items.map(t => `<li>${t}</li>`).join('');
+  $('serialOut').textContent = f.serials.length ? 'Serial no:\n' + f.serials.join('\n') : '(no serial numbers entered)';
+  const m = buildMail(f);
+  $('toOut').textContent = m.to; $('subjectOut').textContent = m.subject; $('bodyOut').textContent = m.body;
+  lastMailto = `mailto:${encodeURIComponent(m.to).replace(/%2C/g, ',')}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+  $('emptyState').classList.add('hidden'); $('results').classList.remove('hidden');
+  updateMarkSentBtn(rec);
+}
+function updateMarkSentBtn(rec){
+  const b = $('markSentBtn');
+  rec = rec || (currentOutId && state.records.find(r => r.id === currentOutId));
+  if (!rec){ b.disabled = true; b.textContent = 'Mark as Sent'; return; }
+  b.disabled = false;
+  b.textContent = rec.status === 'Draft' ? 'Mark as Sent' : `Status: ${rec.status}`;
+}
+$('mailtoBtn').addEventListener('click', () => { window.location.href = lastMailto; });
+$('markSentBtn').addEventListener('click', () => {
+  const rec = currentOutId && state.records.find(r => r.id === currentOutId);
+  if (!rec || rec.status !== 'Draft') return;
+  setStatus(rec.id, 'Sent');
+});
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const text = $(btn.dataset.target).textContent;
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    const original = btn.textContent;
+    btn.textContent = 'Copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1400);
+  });
+});
+
+/* ============================================================
+   Record actions
+   ============================================================ */
+function setStatus(id, status){
+  const r = state.records.find(r => r.id === id); if (!r || r.status === status) return;
+  commit('Status → ' + status, () => {
+    r.status = status;
+    if (status === 'Draft') r.sentAt = null;
+    else if (!r.sentAt) r.sentAt = now();
+    r.updatedAt = now();
+  });
+  updateMarkSentBtn();
+}
+function deleteRecord(id){
+  const r = state.records.find(r => r.id === id); if (!r) return;
+  commit('Delete record', () => { r.deletedAt = now(); r.updatedAt = now(); });
+  if (editingId === id){ editingId = null; updateEditBanner(); }
+  if (currentOutId === id) updateMarkSentBtn();
+  toast('Moved to Bin', 'Undo', undo);
+}
+function recoverRecord(id){
+  const r = state.records.find(r => r.id === id); if (!r) return;
+  commit('Recover record', () => { r.deletedAt = null; r.updatedAt = now(); });
+  toast('Record recovered');
+}
+function purgeRecords(ids){
+  commit(ids.length > 1 ? 'Empty Bin' : 'Delete forever', () => {
+    const t = now(), set = new Set(ids);
+    state.records = state.records.filter(r => !set.has(r.id));
+    ids.forEach(id => { state.purged[id] = t; });
+  });
+}
+function openRecord(id){
+  const r = state.records.find(r => r.id === id); if (!r) return;
+  setForm(r); editingId = id; currentOutId = id;
+  Object.values(F).forEach(el => el.classList.remove('invalid'));
+  resetConfirm(); updateEditBanner(); updateHints();
+  showTab('new');
+  renderOutput(readForm());
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function duplicateRecord(id){
+  const r = state.records.find(r => r.id === id); if (!r) return;
+  clearForm();
+  setForm({ companyId: r.companyId, company: r.company, product: r.product, email: r.email });
+  lastAutoEmail = r.email || '';
+  updateHints(); showTab('new'); F.so.focus();
+  toast('Copied company, product and email — key in the rest');
+}
+
+/* ============================================================
+   Companies
+   ============================================================ */
+let editingCompanyId = null;
+function addCompany(name, emails){
+  name = String(name || '').trim(); emails = String(emails || '').trim();
+  if (!name){ toast('Enter a company name'); return null; }
+  if (state.companies.some(c => norm(c.name) === norm(name))){ toast('That company already exists'); return null; }
+  const bad = parseEmails(emails).filter(e => !emailOk(e));
+  if (bad.length){ toast('Check the email format: ' + bad[0]); return null; }
+  const id = uid();
+  commit('Add company', () => { state.companies.push({ id, name, emails, updatedAt: now() }); });
+  return id;
+}
+$('coSave').addEventListener('click', () => {
+  const name = $('coName').value.trim(), emails = $('coEmails').value.trim();
+  if (editingCompanyId){
+    const c = state.companies.find(c => c.id === editingCompanyId);
+    if (!name){ toast('Enter a company name'); return; }
+    if (state.companies.some(x => x.id !== c.id && norm(x.name) === norm(name))){ toast('That company already exists'); return; }
+    const bad = parseEmails(emails).filter(e => !emailOk(e));
+    if (bad.length){ toast('Check the email format: ' + bad[0]); return; }
+    commit('Edit company', () => { c.name = name; c.emails = emails; c.updatedAt = now(); });
+    toast('Company updated (existing records keep the name they were saved with)');
+  } else {
+    if (!addCompany(name, emails)) return;
+  }
+  clearCompanyForm();
+});
+$('coCancel').addEventListener('click', clearCompanyForm);
+function clearCompanyForm(){
+  editingCompanyId = null; $('coName').value = ''; $('coEmails').value = '';
+  $('coFormTitle').textContent = 'Add company';
+}
+$('coList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const c = state.companies.find(c => c.id === b.dataset.id); if (!c) return;
+  if (b.dataset.act === 'edit'){
+    editingCompanyId = c.id; $('coName').value = c.name; $('coEmails').value = c.emails || '';
+    $('coFormTitle').textContent = 'Edit company'; $('coName').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (b.dataset.act === 'del'){
+    commit('Delete company', () => {
+      state.companies = state.companies.filter(x => x.id !== c.id);
+      state.purged[c.id] = now();
+    });
+    if (editingCompanyId === c.id) clearCompanyForm();
+    toast('Company deleted (records keep its name)', 'Undo', undo);
+  }
+});
+
+/* ============================================================
+   Rendering lists
+   ============================================================ */
+function renderRecords(){
+  const q = norm($('recSearch').value);
+  const st = $('recStatus').value;
+  const coSel = $('recCompany');
+  const prevCo = coSel.value;
+  const all = activeRecords();
+  const names = [...new Set(all.map(r => r.company))].sort((a, b) => a.localeCompare(b));
+  coSel.innerHTML = '<option value="">All companies</option>' + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  coSel.value = names.includes(prevCo) ? prevCo : '';
+  const co = coSel.value, sort = $('recSort').value;
+
+  let list = all.filter(r => {
+    if (st && r.status !== st) return false;
+    if (co && r.company !== co) return false;
+    if (q){
+      const hay = [r.so, r.po, r.inv, r.company, r.product, r.email, r.refNote, ...(r.serials || [])].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.sort((a, b) => {
+    if (sort === 'old') return a.createdAt - b.createdAt;
+    if (sort === 'company') return a.company.localeCompare(b.company) || b.createdAt - a.createdAt;
+    if (sort === 'po') return String(a.po).localeCompare(String(b.po), undefined, { numeric: true });
+    return b.createdAt - a.createdAt;
+  });
+
+  $('recMeta').textContent = `${list.length} of ${all.length} record(s)` + (list.length > 200 ? ' — showing first 200, refine the search' : '');
+  if (!list.length){
+    $('recList').innerHTML = `<div class="empty">${all.length ? 'No records match your filters.' : 'No records yet. Generate one from the New record tab and it will appear here.'}</div>`;
+    return;
+  }
+  $('recList').innerHTML = list.slice(0, 200).map(r => {
+    const matched = q ? (r.serials || []).filter(s => norm(s).includes(q)).slice(0, 3) : [];
+    return `<div class="card">
+      <div class="card-top">
+        <div><div class="card-title">${esc(r.company)} · ${esc(r.po)}</div>
+          <div class="card-sub">${esc(r.inv)} · SO ${esc(r.so)} · ${esc(r.product)}</div></div>
+        <span class="chip ${esc(r.status)}">${esc(r.status)}</span>
+      </div>
+      <div class="card-sub">${(r.serials || []).length} serial(s)${r.qty ? ' / qty ' + esc(r.qty) : ''} · ${esc(r.email)}</div>
+      <div class="card-sub">Created ${esc(fmtDate(r.createdAt))}${r.sentAt ? ' · Sent ' + esc(fmtDate(r.sentAt)) : ''}</div>
+      ${matched.length ? `<div class="card-serial">Serial match: ${matched.map(esc).join(', ')}</div>` : ''}
+      <div class="card-actions">
+        <button class="btn-sm" data-act="open" data-id="${esc(r.id)}">Open / email</button>
+        <button class="btn-sm" data-act="dup" data-id="${esc(r.id)}">Duplicate</button>
+        <select data-act="status" data-id="${esc(r.id)}" aria-label="Status">
+          ${['Draft', 'Sent', 'Paid'].map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
+        </select>
+        <span class="spacer"></span>
+        <button class="btn-danger" data-act="del" data-id="${esc(r.id)}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+$('recList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const id = b.dataset.id;
+  if (b.dataset.act === 'open') openRecord(id);
+  else if (b.dataset.act === 'dup') duplicateRecord(id);
+  else if (b.dataset.act === 'del') deleteRecord(id);
+});
+$('recList').addEventListener('change', e => {
+  const s = e.target.closest('select[data-act="status"]'); if (s) setStatus(s.dataset.id, s.value);
+});
+['recSearch', 'recStatus', 'recCompany', 'recSort'].forEach(id => {
+  $(id).addEventListener('input', renderRecords); $(id).addEventListener('change', renderRecords);
+});
+
+function renderBin(){
+  const list = binRecords().sort((a, b) => b.deletedAt - a.deletedAt);
+  $('binMeta').textContent = list.length ? `${list.length} deleted record(s). They stay here until you empty the Bin.` : 'The Bin is empty. Deleted records stay here until you empty it.';
+  $('emptyBinBtn').classList.toggle('hidden', !list.length);
+  if (!list.length){ $('binList').innerHTML = '<div class="empty">Nothing here.</div>'; return; }
+  $('binList').innerHTML = list.map(r => `<div class="card">
+    <div class="card-top">
+      <div><div class="card-title">${esc(r.company)} · ${esc(r.po)}</div>
+        <div class="card-sub">${esc(r.inv)} · SO ${esc(r.so)} · ${esc(r.product)}</div></div>
+      <span class="chip ${esc(r.status)}">${esc(r.status)}</span>
+    </div>
+    <div class="card-sub">Deleted ${esc(fmtDate(r.deletedAt))} · ${(r.serials || []).length} serial(s)</div>
+    <div class="card-actions">
+      <button class="btn-sm" data-act="recover" data-id="${esc(r.id)}">Recover</button>
+      <span class="spacer"></span>
+      <button class="btn-danger" data-act="purge" data-id="${esc(r.id)}">Delete forever</button>
+    </div></div>`).join('');
+}
+$('binList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  if (b.dataset.act === 'recover') recoverRecord(b.dataset.id);
+  else if (b.dataset.act === 'purge'){
+    if (confirm('Delete this record forever? You can still press Undo straight after, but not once you close the page.')) purgeRecords([b.dataset.id]);
+  }
+});
+$('emptyBinBtn').addEventListener('click', () => {
+  const ids = binRecords().map(r => r.id); if (!ids.length) return;
+  if (confirm(`Permanently delete ${ids.length} record(s) in the Bin?`)) purgeRecords(ids);
+});
+
+function renderCompanies(){
+  const list = [...state.companies].sort((a, b) => a.name.localeCompare(b.name));
+  if (!list.length){ $('coList').innerHTML = '<div class="empty">No companies yet. Add one on the left, or from the New record tab.</div>'; return; }
+  $('coList').innerHTML = list.map(c => {
+    const n = state.records.filter(r => !r.deletedAt && r.companyId === c.id).length;
+    return `<div class="card"><div class="card-top"><div><div class="card-title">${esc(c.name)}</div>
+      <div class="card-sub">${esc(c.emails || 'No default email')}</div></div><span class="muted" style="font-size:12px">${n} record(s)</span></div>
+      <div class="card-actions"><button class="btn-sm" data-act="edit" data-id="${esc(c.id)}">Edit</button><span class="spacer"></span>
+      <button class="btn-danger" data-act="del" data-id="${esc(c.id)}">Delete</button></div></div>`;
+  }).join('');
+}
+
+/* ============================================================
+   Backup / export / import
+   ============================================================ */
+let bannerDismissed = false;
+function renderBackupInfo(){
+  const last = Number(localStorage.getItem(LS_BACKUP) || 0);
+  $('lastBackupText').textContent = last ? 'Last backup downloaded: ' + fmtDate(last) : 'No backup downloaded yet from this browser.';
+  const total = state.records.length;
+  const stale = !last || (now() - last) > 14 * 86400000;
+  const show = total > 0 && stale && !bannerDismissed;
+  $('backupBanner').classList.toggle('hidden', !show);
+  $('backupBannerText').textContent = last ? 'It has been over 2 weeks since your last backup download.' : 'You have records but haven\'t downloaded a backup yet.';
+}
+function exportJson(){
+  const stamp = new Date().toISOString().slice(0, 10);
+  download(`vts-mailer-backup-${stamp}.json`, JSON.stringify({ app: 'vts-mailer', version: 1, exportedAt: now(), ...state }, null, 2), 'application/json');
+  try{ localStorage.setItem(LS_BACKUP, String(now())); }catch(e){}
+  renderBackupInfo(); toast('Backup downloaded');
+}
+function csvCell(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function exportCsv(){
+  const head = ['Created', 'Status', 'Sent', 'Company', 'SO', 'PO', 'Invoice', 'Product/Service', 'Qty', 'Recipient', 'Serials', 'Reference note'];
+  const rows = activeRecords().sort((a, b) => a.createdAt - b.createdAt).map(r => [
+    fmtDate(r.createdAt), r.status, fmtDate(r.sentAt), r.company, r.so, r.po, r.inv, r.product, r.qty, r.email, (r.serials || []).join('; '), r.refNote
+  ]);
+  const csv = '\uFEFF' + [head, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+  download(`vts-records-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv');
+}
+$('exportJsonBtn').addEventListener('click', exportJson);
+$('bannerBackupBtn').addEventListener('click', exportJson);
+$('bannerDismissBtn').addEventListener('click', () => { bannerDismissed = true; renderBackupInfo(); });
+$('csvBtn').addEventListener('click', exportCsv);
+$('csvBtn2').addEventListener('click', exportCsv);
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const data = JSON.parse(rd.result);
+      if (!data || !Array.isArray(data.records)) throw new Error('bad');
+      const before = state.records.length;
+      commit('Import backup', () => { state = mergeStates(state, { records: data.records, companies: data.companies || [], purged: data.purged || {} }); });
+      toast(`Imported — ${state.records.length - before} new record(s) added`);
+    }catch(err){ toast('That file is not a valid backup.'); }
+    $('importFile').value = '';
+  };
+  rd.readAsText(file);
+});
+
+/* ============================================================
+   Sync UI wiring
+   ============================================================ */
+$('connectBtn').addEventListener('click', async () => {
+  const t = $('tokenInput').value.trim();
+  if (!t){ toast('Paste your GitHub token first'); return; }
+  sync = { token: t, gistId: '' }; saveSyncCfg(); $('tokenInput').value = '';
+  await syncNow();
+  if (syncError){ const msg = syncError; if (/401/.test(msg)){ sync = { token: '', gistId: '' }; saveSyncCfg(); syncError = msg; } }
+  renderSyncUI();
+  if (!syncError) toast('Connected and synced');
+});
+$('syncNowBtn').addEventListener('click', syncNow);
+$('disconnectBtn').addEventListener('click', () => {
+  if (!confirm('Disconnect this device? Records stay in this browser; the gist is not deleted.')) return;
+  sync = { token: '', gistId: '' }; saveSyncCfg(); lastSyncAt = null; syncError = ''; renderSyncUI();
+});
+$('syncPill').addEventListener('click', () => { if (sync.token && !syncBusy && syncError) syncNow(); else showTab('backup'); });
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden && sync.token) syncNow(); });
+window.addEventListener('online', () => { if (sync.token) syncNow(); });
+
+/* ============================================================
+   Tabs, undo/redo buttons, shortcuts, render
+   ============================================================ */
+function showTab(name){
+  ['new', 'records', 'bin', 'companies', 'backup'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== name));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  if (name === 'records') renderRecords();
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+$('undoBtn').addEventListener('click', undo);
+$('redoBtn').addEventListener('click', redo);
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const tag = (e.target && e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;  // leave native text undo alone
+  const k = e.key.toLowerCase();
+  if (k === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (k === 'y'){ e.preventDefault(); redo(); }
+});
+
+function renderAll(){
+  $('cntRecords').textContent = activeRecords().length;
+  $('cntBin').textContent = binRecords().length;
+  $('cntCompanies').textContent = state.companies.length;
+  $('undoBtn').disabled = !undoStack.length;
+  $('redoBtn').disabled = !redoStack.length;
+  $('undoBtn').title = undoStack.length ? 'Undo: ' + undoStack[undoStack.length - 1].label : 'Nothing to undo';
+  $('redoBtn').title = redoStack.length ? 'Redo: ' + redoStack[redoStack.length - 1].label : 'Nothing to redo';
+  renderCompanySelect();
+  renderRecords(); renderBin(); renderCompanies();
+  renderBackupInfo(); renderSyncUI();
+}
+
+renderAll();
+updateEditBanner();
+if (sync.token) syncNow();
+</script>
+</body>
+</html>
