@@ -234,6 +234,11 @@
           <input type="text" id="refNote" placeholder="e.g. customer PO copy attached on SO email" autocomplete="off">
         </div>
 
+        <div class="field">
+          <label for="senderSel">Send from<span class="hint">used by "Download draft (.eml)" and "Open in Outlook web"; the default-app button can't set it</span></label>
+          <select id="senderSel"></select>
+        </div>
+
         <div class="gen-warn hidden" id="genWarn"></div>
 
         <div class="actions">
@@ -267,9 +272,12 @@
             <pre id="bodyOut"></pre>
           </div>
           <div class="out-actions">
-            <button class="btn-primary" id="mailtoBtn">Open in Mail</button>
+            <button class="btn-primary" id="emlBtn">Download draft (.eml)</button>
+            <button class="btn-primary" id="webBtn">Open in Outlook web</button>
+            <button class="btn-ghost" id="mailtoBtn">Open in Mail (default app)</button>
             <button class="btn-ghost" id="markSentBtn">Mark as Sent</button>
           </div>
+          <p class="help" id="senderHelp"></p>
         </div>
       </div>
     </div>
@@ -346,6 +354,10 @@
         </div>
         <input type="file" id="importFile" accept="application/json,.json" class="hidden">
         <p class="help">Import merges with what you already have — nothing is overwritten unless the imported copy is newer.</p>
+        <hr class="sep">
+        <div class="field"><label for="sendersInput">Sender addresses<span class="hint">one per line — these appear in the "Send from" dropdown; the first is the default</span></label>
+          <textarea id="sendersInput" rows="3" autocapitalize="off" spellcheck="false"></textarea></div>
+        <div class="actions"><button class="btn-sm" id="senderSave">Save sender list</button></div>
         <hr class="sep">
         <div class="actions" style="margin-top:0"><button class="btn-ghost" id="csvBtn2">Export records as CSV</button></div>
       </div>
@@ -605,7 +617,7 @@ function download(filename, text, mime){
    ============================================================ */
 const F = {
   so: $('soNumber'), company: $('companySel'), po: $('poNumber'), product: $('productService'),
-  qty: $('qty'), inv: $('invoiceNumber'), email: $('recipientEmail'), serials: $('serials'), refNote: $('refNote')
+  qty: $('qty'), sender: $('senderSel'), inv: $('invoiceNumber'), email: $('recipientEmail'), serials: $('serials'), refNote: $('refNote')
 };
 let editingId = null;
 let legacyCompany = null;      // when a loaded record's company no longer exists in the list
@@ -663,6 +675,7 @@ function readForm(){
     po: F.po.value.trim(),
     product: F.product.value.trim(),
     qty: F.qty.value.trim(),
+    sender: F.sender.value,
     inv: F.inv.value.trim(),
     email: F.email.value.trim(),
     serials: parseSerials(F.serials.value),
@@ -679,6 +692,7 @@ function setForm(r){
   F.po.value = r.po || '';
   F.product.value = r.product || '';
   F.qty.value = r.qty || '';
+  renderSenderSelect(r.sender);
   F.inv.value = r.inv || '';
   F.email.value = r.email || '';
   lastAutoEmail = '';
@@ -812,7 +826,7 @@ $('generateBtn').addEventListener('click', () => {
     $('generateBtn').classList.add('warnmode');
     return;
   }
-  const fields = { so: f.so, companyId: f.companyId, company: f.company, po: f.po, product: f.product, qty: f.qty, inv: f.inv, email: f.email, serials: f.serials, refNote: f.refNote };
+  const fields = { so: f.so, companyId: f.companyId, company: f.company, po: f.po, product: f.product, qty: f.qty, sender: f.sender, inv: f.inv, email: f.email, serials: f.serials, refNote: f.refNote };
   const existing = editingId && state.records.find(r => r.id === editingId && !r.deletedAt);
   if (existing){
     commit('Update record', () => { Object.assign(existing, fields, { updatedAt: now() }); });
@@ -843,6 +857,8 @@ function renderOutput(f, warnings){
   $('serialOut').textContent = f.serials.length ? 'Serial no:\n' + f.serials.join('\n') : '(no serial numbers entered)';
   const m = buildMail(f);
   $('toOut').textContent = m.to; $('subjectOut').textContent = m.subject; $('bodyOut').textContent = m.body;
+  lastMail = Object.assign({ from: f.sender || F.sender.value }, m);
+  $('senderHelp').textContent = 'Sending as ' + lastMail.from + ' (.eml and Outlook web only). If the draft opens under a different account, switch From first, then attach the PDFs.';
   lastMailto = `mailto:${encodeURIComponent(m.to).replace(/%2C/g, ',')}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
   $('emptyState').classList.add('hidden'); $('results').classList.remove('hidden');
   updateMarkSentBtn(rec);
@@ -854,7 +870,50 @@ function updateMarkSentBtn(rec){
   b.disabled = false;
   b.textContent = rec.status === 'Draft' ? 'Mark as Sent' : `Status: ${rec.status}`;
 }
+const LS_SENDERS = 'vts_mailer_senders_v1', LS_SENDER_PICK = 'vts_mailer_sender_pick_v1';
+const DEFAULT_SENDERS = ['finance@vertesys.net', 'mike.ong@vertesys.net'];
+function getSenders(){
+  try{ const a = JSON.parse(localStorage.getItem(LS_SENDERS)); if (Array.isArray(a) && a.length) return a; }catch(e){}
+  return DEFAULT_SENDERS.slice();
+}
+function renderSenderSelect(want){
+  const list = getSenders();
+  let pick = want || F.sender.value;
+  if (!pick){ try{ pick = localStorage.getItem(LS_SENDER_PICK) || ''; }catch(e){} }
+  if (want && !list.includes(want)) list.push(want);
+  if (!list.includes(pick)) pick = list[0];
+  F.sender.innerHTML = list.map(x => `<option>${esc(x)}</option>`).join('');
+  F.sender.value = pick;
+}
+F.sender.addEventListener('change', () => { try{ localStorage.setItem(LS_SENDER_PICK, F.sender.value); }catch(e){} });
+function updateSenderUI(){
+  $('sendersInput').value = getSenders().join('\n');
+  renderSenderSelect();
+}
+$('senderSave').addEventListener('click', () => {
+  const list = $('sendersInput').value.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+  if (!list.length || !list.every(emailOk)){ toast('Enter valid email addresses, one per line'); return; }
+  try{ localStorage.setItem(LS_SENDERS, JSON.stringify(list)); }catch(e){}
+  renderSenderSelect(); toast('Sender list saved');
+});
+let lastMail = null;
+function mimeWord(t){ return /^[\x20-\x7e]*$/.test(t) ? t : '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(t))) + '?='; }
 $('mailtoBtn').addEventListener('click', () => { window.location.href = lastMailto; });
+$('emlBtn').addEventListener('click', () => {
+  if (!lastMail) return;
+  const crlf = t => t.replace(/\r?\n/g, '\r\n');
+  const eml = ['From: ' + lastMail.from, 'To: ' + lastMail.to, 'Subject: ' + mimeWord(lastMail.subject), 'X-Unsent: 1',
+    'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: 8bit', '', crlf(lastMail.body)].join('\r\n');
+  download('draft-' + lastMail.subject.replace(/[^a-z0-9]+/gi, '-').slice(0, 60) + '.eml', eml, 'message/rfc822');
+  toast('Open the downloaded .eml; it should open as an unsent draft');
+});
+$('webBtn').addEventListener('click', () => {
+  if (!lastMail) return;
+  const u = 'https://outlook.office.com/mail/deeplink/compose?to=' + encodeURIComponent(lastMail.to) +
+    '&subject=' + encodeURIComponent(lastMail.subject) + '&body=' + encodeURIComponent(lastMail.body) +
+    '&login_hint=' + encodeURIComponent(lastMail.from);
+  window.open(u, '_blank', 'noopener');
+});
 $('markSentBtn').addEventListener('click', () => {
   const rec = currentOutId && state.records.find(r => r.id === currentOutId);
   if (!rec || rec.status !== 'Draft') return;
@@ -1197,6 +1256,7 @@ function renderAll(){
 }
 
 renderAll();
+updateSenderUI();
 updateEditBanner();
 if (sync.token) syncNow();
 </script>
